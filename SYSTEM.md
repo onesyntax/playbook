@@ -86,73 +86,18 @@ When we use the client's language in our code, we're partnering with their menta
 
 #### 2. Rich Domain Models (Not Anemic)
 
-**Anemic Entity (WRONG):**
-```php
-class Booking extends Model
-{
-    protected $fillable = ['user_id', 'start_date', 'end_date', 'status'];
-    
-    // Just getters/setters and database stuff
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-}
-```
-
-**Rich Domain Model (RIGHT):**
-```php
-class Booking extends Model
-{
-    protected $fillable = ['user_id', 'start_date', 'end_date', 'status'];
-    
-    // BUSINESS BEHAVIOR - This is what makes it rich
-    public function cancel(): self
-    {
-        if (!$this->canBeCancelled()) {
-            throw new BookingCancellationException(
-                'Booking cannot be cancelled - it has already started or is not active'
-            );
-        }
-        
-        $this->status = 'cancelled';
-        $this->cancelled_at = now();
-        
-        return $this;
-    }
-    
-    public function canBeCancelled(): bool
-    {
-        return $this->status === 'active' 
-            && $this->start_date > now();
-    }
-    
-    public function confirm(): self
-    {
-        $this->status = 'confirmed';
-        $this->confirmed_at = now();
-        
-        return $this;
-    }
-    
-    public function isPending(): bool
-    {
-        return $this->status === 'pending';
-    }
-    
-    // Relationships at the bottom
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-}
-```
-
-**What makes it rich:**
-- Business rules are explicit (`canBeCancelled()`)
+**What makes an entity "rich":**
+- Business rules are explicit (e.g., `canBeCancelled()`)
 - Domain language is used (`cancel()`, `confirm()`)
 - Behavior is in the entity, not scattered in services
 - Anyone reading the code understands the business
+- Methods express business intent, not just data manipulation
+
+**What makes an entity "anemic":**
+- Only getters, setters, and database relationships
+- No business behavior
+- Business logic scattered in services
+- Technical names that don't reflect business concepts
 
 #### 3. Use Value Objects
 
@@ -162,73 +107,17 @@ class Booking extends Model
 - It appears in multiple places
 - It's more than just a string/int
 
-**Example: Interest Level**
-```php
-class InterestLevel
-{
-    private const INTERESTED = 'interested';
-    private const DELAYED_INTEREST = 'delayed_interest';
-    private const NOT_INTERESTED = 'not_interested';
-    private const NEUTRAL = 'neutral';
-    
-    private string $level;
-    
-    private function __construct(string $level)
-    {
-        $this->level = $level;
-    }
-    
-    public static function interested(): self
-    {
-        return new self(self::INTERESTED);
-    }
-    
-    public static function delayedInterest(): self
-    {
-        return new self(self::DELAYED_INTEREST);
-    }
-    
-    public static function notInterested(): self
-    {
-        return new self(self::NOT_INTERESTED);
-    }
-    
-    public static function neutral(): self
-    {
-        return new self(self::NEUTRAL);
-    }
-    
-    // BUSINESS RULE
-    public function allowsFollowUp(): bool
-    {
-        return in_array($this->level, [
-            self::INTERESTED,
-            self::DELAYED_INTEREST
-        ]);
-    }
-    
-    public function isHot(): bool
-    {
-        return $this->level === self::INTERESTED;
-    }
-    
-    public function toString(): string
-    {
-        return $this->level;
-    }
-    
-    public function equals(InterestLevel $other): bool
-    {
-        return $this->level === $other->level;
-    }
-}
-```
-
 **Benefits:**
 - Business rules are centralized
 - Type safety (can't pass wrong values)
 - Self-documenting code
 - Easy to test
+
+**Examples of good Value Objects:**
+- InterestLevel (interested, delayed, not_interested, neutral)
+- FollowUpRequest (date + reason + validation)
+- MoneyAmount (amount + currency + calculations)
+- EmailAddress (validation + domain logic)
 
 #### 4. Domain Language Dictionary
 
@@ -262,201 +151,63 @@ For each major project/domain, maintain a dictionary of ubiquitous language:
 #### ❌ Anti-Pattern 1: Anemic Domain Models
 
 **Problem:**
-```php
-class LeadResponse extends Model
-{
-    protected $fillable = ['message', 'status'];
-    
-    // No behavior, just data container
-}
-
-// Business logic scattered in services
-class LeadResponseService
-{
-    public function qualifyLead($response)
-    {
-        if (str_contains($response->message, 'interested')) {
-            $response->status = 'interested';
-        }
-        $response->save();
-    }
-}
-```
+- Entity is just a data container with no behavior
+- Business logic scattered in services
+- Technical service names hide business intent
+- Client can't understand what the code does
 
 **Solution:**
-```php
-class LeadResponse extends Model
-{
-    // Business behavior in the entity
-    public function qualify(InterestLevel $level): void
-    {
-        $this->interestLevel = $level;
-    }
-    
-    public function isQualified(): bool
-    {
-        return isset($this->interestLevel);
-    }
-}
-```
+- Move business behavior into entities
+- Entities should have domain methods
+- Services only coordinate, entities execute
 
 #### ❌ Anti-Pattern 2: Technical Naming
 
 **Problem:**
-```php
-class DataNormalizer
-{
-    public function processIncomingPayload($data)
-    {
-        // Client has no idea what this does
-    }
-}
-```
+- Class names like `DataNormalizer`, `RequestProcessor`
+- Method names like `handlePayload`, `processData`
+- Client has no idea what this does in business terms
 
 **Solution:**
-```php
-class LeadResponseAnalyzer
-{
-    public function assessProspectInterest(string $linkedInMessage): InterestLevel
-    {
-        // Clear business intent
-    }
-}
-```
+- Use business language from domain dictionary
+- Names should reflect business intent
+- Ask: "Would the client recognize this term?"
 
 #### ❌ Anti-Pattern 3: Primitive Obsession
 
 **Problem:**
-```php
-public function scheduleFollowUp(string $date, string $reason)
-{
-    // No validation, no business rules
-}
-```
+- Using strings everywhere instead of value objects
+- No validation or business rules
+- Magic values scattered throughout code
+- Hard to change or extend
 
 **Solution:**
-```php
-public function scheduleFollowUp(FollowUpRequest $request)
-{
-    // Value object contains validation and business rules
-}
-```
+- Create value objects for business concepts
+- Encapsulate validation and rules
+- Make invalid states unrepresentable
 
-### DDD Transformation Examples
-
-#### Example 1: LinkedIn Lead Response
+### DDD Transformation Pattern
 
 **Before (Anemic):**
-```php
-class OpenAiLinkedInLeadContactResponseNormalizer
-{
-    public function generateNormalizingPrompt(string $incomingResponse): string
-    {
-        // 50 lines of prompt
-    }
-    
-    protected function mapNormalizedResponse(
-        array $normalizedResponse,
-        string $incomingResponse
-    ): NormalizedLeadContactResponse {
-        return NormalizedLeadContactResponse::validateAndCreate([
-            'normalizedResponse' => $incomingResponse,
-            'summary' => $normalizedResponse['summary'],
-            'leadOpportunityStatus' => $normalizedResponse['leadOpportunityStatus'],
-        ]);
-    }
-}
-```
+- Technical class names
+- No business behavior in entities
+- Logic scattered in services
+- Primitive types everywhere
+- Hard to understand business rules
 
 **After (Rich Domain):**
-```php
-// Domain Entity
-class LeadResponse
-{
-    private string $originalMessage;
-    private ResponseLanguage $language;
-    private InterestLevel $interestLevel;
-    private ?FollowUpRequest $followUpRequest;
-    private ?CompetitorMention $competitorMention;
-    
-    public function qualify(InterestLevel $level): void
-    {
-        $this->interestLevel = $level;
-    }
-    
-    public function requestFollowUp(FollowUpRequest $request): void
-    {
-        if (!$this->interestLevel->allowsFollowUp()) {
-            throw new CannotScheduleFollowUpException(
-                "Cannot schedule follow-up for {$this->interestLevel->toString()} leads"
-            );
-        }
-        
-        $this->followUpRequest = $request;
-    }
-    
-    public function mentionedCompetitor(string $name): void
-    {
-        $this->competitorMention = new CompetitorMention($name);
-    }
-    
-    public function isQualified(): bool
-    {
-        return isset($this->interestLevel);
-    }
-    
-    public function summarize(): string
-    {
-        $summary = $this->originalMessage;
-        
-        if ($this->followUpRequest) {
-            $summary .= " | {$this->followUpRequest->toString()}";
-        }
-        
-        if ($this->competitorMention) {
-            $summary .= " | Competitor: {$this->competitorMention->name}";
-        }
-        
-        return $summary;
-    }
-}
+- Business language used throughout
+- Entities contain business behavior
+- Value objects for domain concepts
+- Business rules explicit and testable
+- Code readable by non-technical stakeholders
 
-// Use Case
-class QualifyLeadFromLinkedInResponse
-{
-    private $aiAnalyzer;
-    private $leadRepository;
-    
-    public function execute(string $message, string $leadId): LeadResponse
-    {
-        $response = new LeadResponse($message, ResponseLanguage::detectFrom($message));
-        
-        $analysis = $this->aiAnalyzer->analyze($message);
-        
-        $response->qualify($analysis->interestLevel);
-        
-        if ($analysis->hasFollowUpRequest) {
-            $response->requestFollowUp(
-                FollowUpRequest::fromRelativeTime($analysis->followUpTimeframe)
-            );
-        }
-        
-        if ($analysis->mentionsCompetitor) {
-            $response->mentionedCompetitor($analysis->competitorName);
-        }
-        
-        $this->leadRepository->saveResponse($leadId, $response);
-        
-        return $response;
-    }
-}
-```
-
-**What Changed:**
-- Technical names → Business language
-- Passive data → Active domain objects
-- Scattered logic → Centralized business rules
-- Hard to understand → Client can read it
+**Key Questions for Transformation:**
+1. What's the ubiquitous language here?
+2. What business rules exist?
+3. What behavior belongs in this entity?
+4. Do I need value objects?
+5. Where does validation happen?
 
 ---
 
@@ -503,8 +254,14 @@ IO → Adapters → UseCases → Entities
 
 ❌ Entities CANNOT depend on UseCases
 ❌ UseCases CANNOT depend on Controllers
-❌ Entities CANNOT depend on Eloquent (except pragmatically)
+❌ Entities CANNOT depend on framework-specific code (except pragmatically)
 ```
+
+**Why this matters:**
+- Business logic stays stable when frameworks change
+- Easy to test without framework
+- Can swap IO implementations without touching business logic
+- Clear separation of concerns
 
 ### Three Approaches: When to Use What
 
@@ -518,26 +275,11 @@ OneSyntax supports three levels of Clean Architecture implementation. Choose bas
 - Quick MVP or prototype
 - Low complexity business logic
 
-**Structure:**
-```php
-// UseCase calls Eloquent directly
-class CancelBooking
-{
-    public function execute(string $bookingId)
-    {
-        $booking = Booking::find($bookingId);
-        
-        if (!$booking->canBeCancelled()) {
-            throw new BookingCancellationException();
-        }
-        
-        $booking->cancel();
-        $booking->save();
-        
-        return $booking;
-    }
-}
-```
+**Characteristics:**
+- UseCases call Eloquent directly
+- Minimal abstraction layers
+- Faster to write
+- Less boilerplate
 
 **Trade-offs:**
 - ✅ Faster to write
@@ -553,52 +295,17 @@ class CancelBooking
 - Need better testability
 - Team with multiple developers
 
-**Structure:**
-```php
-// UseCase depends on Repository Interface
-class CancelBooking
-{
-    private $bookingRepository;
-    
-    public function __construct(BookingRepositoryInterface $repository)
-    {
-        $this->bookingRepository = $repository;
-    }
-    
-    public function execute(string $bookingId)
-    {
-        $booking = $this->bookingRepository->findById($bookingId);
-        
-        if (!$booking->canBeCancelled()) {
-            throw new BookingCancellationException();
-        }
-        
-        $booking->cancel();
-        return $this->bookingRepository->save($booking);
-    }
-}
-
-// Repository in IO layer
-class EloquentBookingRepository implements BookingRepositoryInterface
-{
-    public function findById(string $id): ?Booking
-    {
-        return Booking::find($id);
-    }
-    
-    public function save(Booking $booking): Booking
-    {
-        $booking->save();
-        return $booking;
-    }
-}
-```
+**Characteristics:**
+- Repository pattern for data access
+- UseCases depend on repository interfaces
+- Clear separation of domain and IO
+- Good testability
 
 **Trade-offs:**
 - ✅ Decoupled from Eloquent
 - ✅ Easy to test
 - ✅ Can swap data sources
-- ❌ More boilerplate
+- ❌ More boilerplate than pragmatic
 
 #### Approach 3: Purist (Complex Projects)
 
@@ -608,68 +315,11 @@ class EloquentBookingRepository implements BookingRepositoryInterface
 - Different output formats needed
 - Enterprise-level projects
 
-**Structure:**
-```php
-// UseCase with Presenter pattern
-class CancelBooking
-{
-    private $repository;
-    
-    public function execute(
-        string $bookingId, 
-        CancelBookingPresenterInterface $presenter
-    ) {
-        $booking = $this->repository->findById($bookingId);
-        
-        if (!$booking) {
-            return $presenter->presentNotFound($bookingId);
-        }
-        
-        if (!$booking->canBeCancelled()) {
-            return $presenter->presentCannotCancel('Booking has started');
-        }
-        
-        $booking->cancel();
-        $booking = $this->repository->save($booking);
-        
-        return $presenter->presentSuccess($booking);
-    }
-}
-
-// JSON Presenter for API
-class CancelBookingJsonPresenter implements CancelBookingPresenterInterface
-{
-    public function presentSuccess(Booking $booking): array
-    {
-        return [
-            'success' => true,
-            'data' => ['id' => $booking->id, 'status' => 'cancelled']
-        ];
-    }
-    
-    public function presentNotFound(string $id): array
-    {
-        return [
-            'success' => false,
-            'error' => ['code' => 'not_found', 'message' => 'Booking not found']
-        ];
-    }
-}
-
-// CLI Presenter for Commands
-class CancelBookingCliPresenter implements CancelBookingPresenterInterface
-{
-    public function presentSuccess(Booking $booking): string
-    {
-        return "✓ Booking {$booking->id} cancelled successfully.";
-    }
-    
-    public function presentNotFound(string $id): string
-    {
-        return "✗ Error: Booking {$id} not found.";
-    }
-}
-```
+**Characteristics:**
+- Presenter pattern for output formatting
+- UseCases completely framework-agnostic
+- Consistent error handling across interfaces
+- Maximum flexibility
 
 **Trade-offs:**
 - ✅ Maximum decoupling
@@ -705,172 +355,67 @@ Default: When in doubt, use Standard approach
 #### ❌ Anti-Pattern 1: Business Logic in Controllers
 
 **Problem:**
-```php
-// app/Booking/IO/Http/BookingController.php
-class BookingController
-{
-    public function cancel(string $id)
-    {
-        $booking = Booking::find($id);
-        
-        // Business logic in controller!
-        if ($booking->status !== 'active') {
-            return response()->json(['error' => 'Cannot cancel'], 400);
-        }
-        
-        if ($booking->start_date < now()) {
-            return response()->json(['error' => 'Already started'], 400);
-        }
-        
-        $booking->status = 'cancelled';
-        $booking->save();
-        
-        return response()->json(['success' => true]);
-    }
-}
-```
+- Controllers contain business rules and validation
+- Logic can't be reused from other interfaces (CLI, queues)
+- Hard to test
+- Violates single responsibility
 
 **Solution:**
-```php
-// Business logic in UseCase
-class CancelBooking
-{
-    public function execute(string $bookingId): Booking
-    {
-        $booking = $this->repository->findById($bookingId);
-        
-        if (!$booking->canBeCancelled()) {
-            throw new BookingCancellationException();
-        }
-        
-        $booking->cancel();
-        return $this->repository->save($booking);
-    }
-}
-
-// Controller is thin
-class BookingController
-{
-    public function cancel(string $id)
-    {
-        try {
-            $booking = $this->cancelBooking->execute($id);
-            return response()->json(['success' => true, 'data' => $booking]);
-        } catch (BookingCancellationException $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
-        }
-    }
-}
-```
+- Controllers should be thin
+- Business logic belongs in UseCases
+- Controllers handle HTTP concerns only (validation, response formatting)
 
 #### ❌ Anti-Pattern 2: Framework Dependencies in Domain
 
 **Problem:**
-```php
-// app/Booking/Entities/Booking.php
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Http\Request;
-
-class Booking extends Model
-{
-    public function cancel(Request $request)
-    {
-        $this->status = 'cancelled';
-        $this->save();
-        
-        // Framework dependency!
-        Mail::to($this->user)->send(new BookingCancelled($this));
-    }
-}
-```
+- Entities import framework-specific classes
+- Business logic tied to Laravel/Illuminate
+- Can't test without framework
+- Creates technical debt
 
 **Solution:**
-```php
-// Entity has no framework dependencies
-class Booking extends Model
-{
-    public function cancel(): self
-    {
-        $this->status = 'cancelled';
-        $this->cancelled_at = now();
-        return $this;
-    }
-}
-
-// UseCase coordinates side effects
-class CancelBooking
-{
-    private $repository;
-    private $notificationService;
-    
-    public function execute(string $bookingId): Booking
-    {
-        $booking = $this->repository->findById($bookingId);
-        $booking->cancel();
-        $booking = $this->repository->save($booking);
-        
-        // Side effects in use case
-        $this->notificationService->sendCancellationEmail($booking);
-        
-        return $booking;
-    }
-}
-```
+- Keep domain layer framework-agnostic
+- No Illuminate imports in Entities or UseCases (except pragmatic Eloquent in Entities)
+- Move framework concerns to IO layer
 
 #### ❌ Anti-Pattern 3: Mixing IO Concerns with Business Logic
 
 **Problem:**
-```php
-class CreateBooking
-{
-    public function execute(Request $request)
-    {
-        // Mixing HTTP concerns with business logic
-        $validated = $request->validate([
-            'user_id' => 'required',
-            'start_date' => 'required|date',
-        ]);
-        
-        $booking = new Booking($validated);
-        $booking->save();
-        
-        return response()->json($booking, 201);
-    }
-}
-```
+- UseCases handling HTTP requests directly
+- Business logic aware of presentation format
+- Can't reuse logic across interfaces
 
 **Solution:**
-```php
-// Use Case is framework-agnostic
-class CreateBooking
-{
-    public function execute(CreateBookingRequest $request): Booking
-    {
-        $booking = new Booking();
-        $booking->user_id = $request->userId;
-        $booking->start_date = $request->startDate;
-        $booking->end_date = $request->endDate;
-        
-        return $this->repository->save($booking);
-    }
-}
+- UseCases work with DTOs or domain objects
+- Presentation handled in Controllers/Presenters
+- Business logic independent of delivery mechanism
 
-// Controller handles HTTP concerns
-class BookingController
-{
-    public function store(Request $httpRequest)
-    {
-        $validated = $httpRequest->validate([
-            'user_id' => 'required',
-            'start_date' => 'required|date',
-        ]);
-        
-        $request = CreateBookingRequest::from($validated);
-        $booking = $this->createBooking->execute($request);
-        
-        return response()->json($booking, 201);
-    }
-}
+### Architecture Decision Documentation
+
+**For each domain, document in README.md:**
+
+1. **Approach chosen:** Pragmatic/Standard/Purist
+2. **Why:** Business reasoning for the choice
+3. **Key characteristics:** What makes this domain special
+4. **Trade-offs accepted:** What we're optimizing for
+
+**Example:**
+```markdown
+# Booking Domain
+
+**Approach:** Standard (Repository pattern)
+
+**Why:** Need to support multiple data sources (MySQL + external calendar API). 
+Business logic is complex enough to warrant testing in isolation.
+
+**Key Characteristics:**
+- Multi-tenant booking system
+- Integration with external calendar services
+- Complex availability calculation rules
+
+**Trade-offs:** 
+- More boilerplate than pragmatic, but worth it for testability
+- Not using presenters (yet) - may add if we need GraphQL interface
 ```
 
 ---
@@ -949,18 +494,18 @@ Use these templates to provide educational feedback:
 ❗️This entity breaks OneSyntax's partnership promise.
 
 **Current code:**
-The `LeadResponse` entity is a passive data container. Business logic is scattered in services.
+The [EntityName] entity is a passive data container. Business logic is scattered in services.
 
 **Why this matters:**
 Our clients trust us to understand their business. When business rules are hidden in services with technical names, we're working in isolation from their mental model.
 
 **Requested changes:**
-1. Move `qualifyLead()` logic into the `LeadResponse` entity as `qualify(InterestLevel $level)`
-2. Add `isQualified(): bool` method
-3. Add `requestFollowUp(FollowUpRequest $request)` method
+1. Move business logic into the entity as behavior methods
+2. Use ubiquitous language from domain dictionary
+3. Make business rules explicit
 
 **Example:**
-See app/Booking/Entities/Booking.php for rich domain model example.
+See [ReferenceProject]/[Domain]/Entities/[Example].php for rich domain model example.
 ```
 
 #### Template 2: Framework Leakage
@@ -969,18 +514,18 @@ See app/Booking/Entities/Booking.php for rich domain model example.
 ❗️This violates Clean Architecture - framework dependency in domain layer.
 
 **Current code:**
-`app/Payment/Entities/Invoice.php` imports `Illuminate\Http\Request`
+[File path] imports framework-specific classes
 
 **Why this matters:**
-We promise clients their software will last. Framework dependencies in domain create technical debt. When Laravel 15 comes out, we shouldn't need to touch domain logic.
+We promise clients their software will last. Framework dependencies in domain create technical debt. When Laravel updates, we shouldn't need to touch domain logic.
 
 **Requested changes:**
-1. Remove `Illuminate\Http\Request` import
+1. Remove framework imports from domain layer
 2. Pass primitive values or DTOs to entity methods
-3. Move HTTP concerns to Controller layer
+3. Move framework concerns to IO layer
 
 **Reference:**
-See "Clean Architecture Anti-Patterns" in OneSyntax-Development-System.md
+See "Clean Architecture Anti-Patterns" section in OneSyntax Development System
 ```
 
 #### Template 3: Business Logic in Controller
@@ -989,18 +534,18 @@ See "Clean Architecture Anti-Patterns" in OneSyntax-Development-System.md
 ❗️Business logic belongs in UseCases, not Controllers.
 
 **Current code:**
-`BookingController::cancel()` contains cancellation rules and validation
+[ControllerName] contains business rules and validation
 
 **Why this matters:**
 Controllers are IO layer - they should be thin. Business logic in controllers makes it impossible to reuse from CLI, queues, or other interfaces. This violates our accountability to build maintainable software.
 
 **Requested changes:**
-1. Create `CancelBooking` use case
-2. Move cancellation logic to use case
+1. Create [UseCaseName] use case
+2. Move business logic to use case
 3. Controller should only handle HTTP concerns (validation, response formatting)
 
 **Approach:**
-Use Standard approach (repository pattern) since this has business complexity.
+Use [Pragmatic/Standard/Purist] approach because [reason]
 ```
 
 ### Approval Guidelines
@@ -1031,6 +576,22 @@ Use Standard approach (repository pattern) since this has business complexity.
 
 **If review is blocked:** Developer can request urgent review in #engineering Slack channel.
 
+### Educational Feedback Principles
+
+**Good feedback:**
+- Explains WHY, not just WHAT
+- References OneSyntax mission/values
+- Provides examples or documentation links
+- Suggests specific improvements
+- Educates for future decisions
+
+**Bad feedback:**
+- Just says "wrong" or "change this"
+- No context or reasoning
+- Vague or unclear expectations
+- Focuses on personal preference
+- Makes developer feel criticized
+
 ---
 
 ## Testing Standards
@@ -1045,222 +606,95 @@ Other agencies skip tests and disappear. We test because we're accountable beyon
 
 #### 1. Unit Tests (Entities & Value Objects)
 
-**What:** Test business logic in isolation
-**Location:** `app/DomainName/Specs/Unit/`
+**What:** Test business logic in isolation  
+**Location:** `app/DomainName/Specs/Unit/`  
 **Coverage Target:** 100% of domain logic
 
-**Example:**
-```php
-// app/Booking/Specs/Unit/BookingTest.php
-namespace App\Booking\Specs\Unit;
+**Focus on:**
+- Business rules in entities
+- Value object validation
+- Edge cases and error conditions
+- Domain logic calculations
 
-use App\Booking\Entities\Booking;
-use PHPUnit\Framework\TestCase;
-
-class BookingTest extends TestCase
-{
-    /** @test */
-    public function it_can_be_cancelled_when_active_and_not_started()
-    {
-        $booking = new Booking();
-        $booking->status = 'active';
-        $booking->start_date = now()->addDays(7);
-        
-        $this->assertTrue($booking->canBeCancelled());
-        
-        $booking->cancel();
-        
-        $this->assertEquals('cancelled', $booking->status);
-        $this->assertNotNull($booking->cancelled_at);
-    }
-    
-    /** @test */
-    public function it_cannot_be_cancelled_when_already_started()
-    {
-        $booking = new Booking();
-        $booking->status = 'active';
-        $booking->start_date = now()->subDays(1);
-        
-        $this->assertFalse($booking->canBeCancelled());
-    }
-    
-    /** @test */
-    public function it_throws_exception_when_cancelling_invalid_booking()
-    {
-        $this->expectException(BookingCancellationException::class);
-        
-        $booking = new Booking();
-        $booking->status = 'completed';
-        
-        $booking->cancel();
-    }
-}
-```
+**Characteristics:**
+- Fast (< 100ms per test)
+- No database or external dependencies
+- Test single concept per test
+- Use mocks for dependencies
 
 #### 2. Use Case Tests (Application Logic)
 
-**What:** Test business workflows
-**Location:** `app/DomainName/Specs/UseCases/`
+**What:** Test business workflows  
+**Location:** `app/DomainName/Specs/UseCases/`  
 **Coverage Target:** All use cases, happy path + major edge cases
 
-**Example:**
-```php
-// app/Booking/Specs/UseCases/CancelBookingTest.php
-namespace App\Booking\Specs\UseCases;
+**Focus on:**
+- Complete workflows
+- Integration between entities
+- Repository interactions (mocked)
+- Error handling and exceptions
 
-use App\Booking\UseCases\CancelBooking;
-use App\Booking\Testing\BookingRepositoryMock;
-use App\Booking\Entities\Booking;
-use PHPUnit\Framework\TestCase;
-
-class CancelBookingTest extends TestCase
-{
-    private CancelBooking $useCase;
-    private BookingRepositoryMock $repository;
-    
-    protected function setUp(): void
-    {
-        $this->repository = new BookingRepositoryMock();
-        $this->useCase = new CancelBooking($this->repository);
-    }
-    
-    /** @test */
-    public function it_cancels_an_active_booking()
-    {
-        $booking = new Booking();
-        $booking->id = 1;
-        $booking->status = 'active';
-        $booking->start_date = now()->addDays(7);
-        
-        $this->repository->addBooking($booking);
-        
-        $result = $this->useCase->execute('1');
-        
-        $this->assertEquals('cancelled', $result->status);
-        $this->assertNotNull($this->repository->getLastSavedBooking());
-    }
-    
-    /** @test */
-    public function it_throws_exception_for_non_existent_booking()
-    {
-        $this->expectException(BookingNotFoundException::class);
-        
-        $this->useCase->execute('999');
-    }
-    
-    /** @test */
-    public function it_throws_exception_for_already_started_booking()
-    {
-        $booking = new Booking();
-        $booking->id = 1;
-        $booking->status = 'active';
-        $booking->start_date = now()->subDays(1);
-        
-        $this->repository->addBooking($booking);
-        
-        $this->expectException(BookingCancellationException::class);
-        
-        $this->useCase->execute('1');
-    }
-}
-```
+**Characteristics:**
+- Test use case behavior, not implementation
+- Use repository mocks
+- Verify correct entity methods called
+- Test both success and failure paths
 
 #### 3. Integration Tests (Full Flow)
 
-**What:** Test complete features including database
-**Location:** `tests/Feature/`
+**What:** Test complete features including database  
+**Location:** `tests/Feature/`  
 **Coverage Target:** Critical user journeys
 
-**Example:**
-```php
-// tests/Feature/BookingCancellationTest.php
-namespace Tests\Feature;
+**Focus on:**
+- End-to-end workflows
+- Database persistence
+- API contracts
+- User-facing functionality
 
-use Tests\TestCase;
-use App\User\Entities\User;
-use App\Booking\Entities\Booking;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-class BookingCancellationTest extends TestCase
-{
-    use RefreshDatabase;
-    
-    /** @test */
-    public function user_can_cancel_their_active_booking_via_api()
-    {
-        $user = User::factory()->create();
-        $booking = Booking::factory()->create([
-            'user_id' => $user->id,
-            'status' => 'active',
-            'start_date' => now()->addDays(7)
-        ]);
-        
-        $response = $this->actingAs($user)
-            ->deleteJson("/api/bookings/{$booking->id}");
-        
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
-        
-        $this->assertDatabaseHas('bookings', [
-            'id' => $booking->id,
-            'status' => 'cancelled'
-        ]);
-    }
-}
-```
+**Characteristics:**
+- Include database (RefreshDatabase)
+- Test via HTTP/CLI interfaces
+- Verify actual side effects
+- Slower but comprehensive
 
 ### Test Quality Standards
 
 #### Good Test Characteristics
 
-✅ **Descriptive names:** `it_can_be_cancelled_when_active_and_not_started()`
-✅ **Arrange-Act-Assert pattern:** Clear sections
-✅ **One concept per test:** Don't test multiple things
-✅ **No test interdependence:** Tests run in any order
+✅ **Descriptive names:** `it_can_be_cancelled_when_active_and_not_started()`  
+✅ **Arrange-Act-Assert pattern:** Clear sections  
+✅ **One concept per test:** Don't test multiple things  
+✅ **No test interdependence:** Tests run in any order  
 ✅ **Fast:** Unit tests < 100ms, integration tests < 500ms
 
 #### Bad Test Characteristics
 
-❌ **Vague names:** `test_booking()`
-❌ **Testing implementation:** Testing private methods
-❌ **Brittle:** Breaks when implementation changes (but behavior doesn't)
-❌ **Slow:** Making unnecessary external calls
+❌ **Vague names:** `test_booking()`  
+❌ **Testing implementation:** Testing private methods  
+❌ **Brittle:** Breaks when implementation changes (but behavior doesn't)  
+❌ **Slow:** Making unnecessary external calls  
 ❌ **Incomplete:** Not testing edge cases
 
-### Testing Utilities
+### Testing Approach by Layer
 
-Each domain should provide testing utilities:
+**Entities:**
+- Unit test all business methods
+- Test validation rules
+- Test state changes
+- Test edge cases
 
-```php
-// app/Booking/Testing/BookingFactory.php
-namespace App\Booking\Testing;
+**UseCases:**
+- Test with repository mocks
+- Test happy path
+- Test error conditions
+- Test business workflow logic
 
-use App\Booking\Entities\Booking;
-
-class BookingFactory
-{
-    public static function createActiveBooking(array $overrides = []): Booking
-    {
-        $booking = new Booking();
-        $booking->status = 'active';
-        $booking->start_date = now()->addDays(7);
-        $booking->end_date = now()->addDays(14);
-        
-        foreach ($overrides as $key => $value) {
-            $booking->$key = $value;
-        }
-        
-        return $booking;
-    }
-    
-    public static function createStartedBooking(array $overrides = []): Booking
-    {
-        return self::createActiveBooking(array_merge([
-            'start_date' => now()->subDays(1)
-        ], $overrides));
-    }
-}
-```
+**Controllers:**
+- Integration test main flows
+- Test authentication/authorization
+- Test request validation
+- Test response formatting
 
 ### Coverage Requirements
 
@@ -1268,10 +702,25 @@ class BookingFactory
 - **Controllers:** 70%+ coverage (focus on error handling)
 - **Overall project:** 80%+ coverage
 
-Run coverage reports:
-```bash
-./vendor/bin/phpunit --coverage-html build/coverage
-```
+### Testing Utilities
+
+Each domain should provide testing utilities:
+
+**Repository Mocks:**
+- Implement repository interfaces
+- Provide helper methods for tests
+- Track what was saved/queried
+- Easy to set up test data
+
+**Test Factories:**
+- Create valid domain objects quickly
+- Support different states (active, cancelled, etc.)
+- Reduce test setup boilerplate
+
+**Assertion Helpers:**
+- Domain-specific assertions
+- Clear error messages
+- Reduce test verbosity
 
 ---
 
@@ -1283,547 +732,144 @@ Run coverage reports:
 
 We say we practice XP/Agile properly, not as buzzwords. Automated enforcement proves it. When clients ask "how do you ensure quality?" we show them the guardrails, not promises.
 
+### Enforcement Philosophy
+
+**Good enforcement:**
+- Catches mistakes before they become problems
+- Makes good architecture the easy path
+- Provides immediate feedback
+- Teaches through prevention
+
+**Bad enforcement:**
+- Feels like micromanagement
+- Slows down development unnecessarily
+- Focuses on style over substance
+- Blocks without educating
+
 ### Layer 1: Pre-Commit Enforcement
 
 **Goal:** Catch violations before they're committed
 
-#### PHP CS Fixer Configuration
+**Tools:**
+- PHP CS Fixer (code style)
+- PHPStan (static analysis)
+- Git pre-commit hooks (force checks)
 
-```php
-// .php-cs-fixer.php
-<?php
+**What it catches:**
+- Code style violations
+- Type errors
+- Obvious bugs
+- Framework imports in domain layer
 
-use PhpCsFixer\Config;
-use PhpCsFixer\Finder;
-
-$finder = Finder::create()
-    ->in([
-        __DIR__ . '/app',
-    ])
-    ->name('*.php')
-    ->ignoreDotFiles(true)
-    ->ignoreVCS(true);
-
-return (new Config())
-    ->setRules([
-        '@PSR12' => true,
-        'array_syntax' => ['syntax' => 'short'],
-        'ordered_imports' => ['sort_algorithm' => 'alpha'],
-        'no_unused_imports' => true,
-        'not_operator_with_successor_space' => true,
-        'trailing_comma_in_multiline' => true,
-        'phpdoc_scalar' => true,
-        'unary_operator_spaces' => true,
-        'binary_operator_spaces' => true,
-        'blank_line_before_statement' => [
-            'statements' => ['break', 'continue', 'declare', 'return', 'throw', 'try'],
-        ],
-        'phpdoc_single_line_var_spacing' => true,
-        'phpdoc_var_without_name' => true,
-    ])
-    ->setFinder($finder);
-```
-
-**Run manually:**
-```bash
-./vendor/bin/php-cs-fixer fix
-```
-
-#### PHPStan Configuration
-
-```yaml
-# phpstan.neon
-includes:
-    - vendor/nunomaduro/larastan/extension.neon
-
-parameters:
-    paths:
-        - app
-    level: 6
-    
-    # Ignore Eloquent in Entities (pragmatic choice)
-    ignoreErrors:
-        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\.*#'
-    
-    # Custom rules
-    excludePaths:
-        - app/*/IO/*
-```
-
-**Run manually:**
-```bash
-./vendor/bin/phpstan analyze
-```
-
-#### Git Pre-Commit Hook
-
-```bash
-#!/bin/bash
-# .git/hooks/pre-commit
-
-echo "🔍 Running OneSyntax pre-commit checks..."
-
-# PHP CS Fixer
-echo "→ Checking code style..."
-./vendor/bin/php-cs-fixer fix --dry-run --diff
-if [ $? -ne 0 ]; then
-    echo "❌ Code style issues found. Run: ./vendor/bin/php-cs-fixer fix"
-    exit 1
-fi
-
-# PHPStan
-echo "→ Running static analysis..."
-./vendor/bin/phpstan analyze --error-format=table
-if [ $? -ne 0 ]; then
-    echo "❌ PHPStan found issues"
-    exit 1
-fi
-
-# Architecture Tests
-echo "→ Running architecture tests..."
-./vendor/bin/phpunit tests/Architecture --testdox
-if [ $? -ne 0 ]; then
-    echo "❌ Architecture violations found"
-    exit 1
-fi
-
-echo "✅ All pre-commit checks passed!"
-exit 0
-```
-
-**Install hook:**
-```bash
-chmod +x .git/hooks/pre-commit
-```
+**Developer experience:**
+- Fast feedback (< 30 seconds)
+- Runs on developer machine
+- Can't commit broken code
+- Learn correct patterns immediately
 
 ### Layer 2: Pull Request Enforcement
 
-#### GitHub PR Template
+**Goal:** Block merges that violate architecture
 
-```markdown
-<!-- .github/pull_request_template.md -->
+**Tools:**
+- GitHub PR templates with checklists
+- Branch protection rules
+- Required approvals from seniors
+- CODEOWNERS for architecture files
 
-## Description
-Brief description of changes
+**What it catches:**
+- Missing documentation
+- Incomplete checklists
+- Architecture violations
+- Insufficient testing
 
-## OneSyntax Standards
+**Review process:**
+- All automated checks must pass first
+- Seniors verify architectural decisions
+- Educational feedback provided
+- No merge until approved
 
-Our mission: True partnership through accountable, professional development
+### Layer 3: Automated Architecture Tests
 
-### Partnership (DDD)
-- [ ] Code uses ubiquitous language (checked against Domain Dictionary)
-- [ ] Entities have business behavior (list methods): 
-- [ ] Business rules are explicit and in domain layer
-- [ ] Value objects used where appropriate (list them):
+**Goal:** Verify architectural boundaries programmatically
 
-### Accountability (CA)
-- [ ] No framework dependencies in Entities layer
-- [ ] No framework dependencies in UseCases layer
-- [ ] Business logic is in UseCases, not Controllers
-- [ ] IO layer properly separated (Database, Http, Console)
-- [ ] Architecture approach chosen (select one):
-  - [ ] Pragmatic (simple CRUD, justified because: ___)
-  - [ ] Standard (repository pattern)
-  - [ ] Purist (presenter pattern, justified because: ___)
+**What they test:**
+- No framework in Entities layer
+- No framework in UseCases layer
+- Controllers only call UseCases
+- Entities have behavior (not anemic)
 
-### Professionalism (Quality)
-- [ ] Unit tests for domain logic (coverage: __%)
-- [ ] Use case tests written
-- [ ] Tests use domain Testing utilities
-- [ ] No security issues
-- [ ] Performance considered
-
-## Reviewer Checklist
-
-**DO NOT APPROVE unless:**
-- [ ] All checkboxes above are checked
-- [ ] Automated checks pass (CS Fixer, PHPStan, Tests)
-- [ ] Code follows OneSyntax patterns
-- [ ] Educational feedback provided (if applicable)
-
-## Related Issues
-Closes #___
-```
-
-#### Branch Protection Rules
-
-Configure in GitHub Settings → Branches:
-
-**Protection for `main` and `develop`:**
-- ✅ Require pull request reviews (1 approval minimum)
-- ✅ Require status checks to pass:
-  - `php-cs-fixer`
-  - `phpstan`
-  - `tests`
-  - `architecture-tests`
-- ✅ Require conversation resolution
-- ✅ Require linear history
-- ✅ Include administrators (even Kalpa follows rules)
-
-#### CODEOWNERS
-
-```
-# .github/CODEOWNERS
-
-# Default: Any senior can review
-* @senior-dev-1 @senior-dev-2 @senior-dev-3 @senior-dev-4
-
-# Architecture changes require Kalpa (first 3 months)
-/app/*/Entities/ @kalpa
-/app/*/UseCases/ @kalpa
-/docs/architecture/ @kalpa
-
-# After training complete, seniors can handle:
-# /app/*/Entities/ @senior-dev-1 @senior-dev-2
-# /app/*/UseCases/ @senior-dev-1 @senior-dev-2
-```
-
-### Layer 3: Architecture Tests
-
-```php
-// tests/Architecture/DomainLayerTest.php
-<?php
-
-namespace Tests\Architecture;
-
-use PHPUnit\Framework\TestCase;
-
-class DomainLayerTest extends TestCase
-{
-    /** @test */
-    public function entities_should_not_depend_on_framework()
-    {
-        $entityFiles = glob(__DIR__ . '/../../app/*/Entities/*.php');
-        
-        foreach ($entityFiles as $file) {
-            $content = file_get_contents($file);
-            
-            $this->assertStringNotContainsString(
-                'use Illuminate\\Http',
-                $content,
-                "Entity {$file} should not depend on HTTP framework"
-            );
-            
-            $this->assertStringNotContainsString(
-                'use Illuminate\\Support\\Facades',
-                $content,
-                "Entity {$file} should not use facades"
-            );
-        }
-    }
-    
-    /** @test */
-    public function use_cases_should_not_depend_on_framework()
-    {
-        $useCaseFiles = glob(__DIR__ . '/../../app/*/UseCases/*.php');
-        
-        foreach ($useCaseFiles as $file) {
-            $content = file_get_contents($file);
-            
-            $forbiddenImports = [
-                'use Illuminate\\Http',
-                'use Illuminate\\Support\\Facades',
-                'use Laravel\\',
-            ];
-            
-            foreach ($forbiddenImports as $import) {
-                $this->assertStringNotContainsString(
-                    $import,
-                    $content,
-                    "UseCase {$file} should not depend on framework: {$import}"
-                );
-            }
-        }
-    }
-    
-    /** @test */
-    public function controllers_should_only_call_use_cases()
-    {
-        $controllerFiles = glob(__DIR__ . '/../../app/*/IO/Http/*Controller.php');
-        
-        foreach ($controllerFiles as $file) {
-            $content = file_get_contents($file);
-            
-            // Controllers should not have business logic
-            $this->assertStringNotContainsString(
-                '->save(',
-                $content,
-                "Controller {$file} should not call save() directly - use UseCases"
-            );
-            
-            $this->assertStringNotContainsString(
-                '::create(',
-                $content,
-                "Controller {$file} should not call create() directly - use UseCases"
-            );
-        }
-    }
-    
-    /** @test */
-    public function entities_should_have_behavior_methods()
-    {
-        $entityFiles = glob(__DIR__ . '/../../app/*/Entities/*.php');
-        
-        foreach ($entityFiles as $file) {
-            $className = $this->getClassNameFromFile($file);
-            
-            if (!class_exists($className)) {
-                continue;
-            }
-            
-            $reflection = new \ReflectionClass($className);
-            $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
-            
-            // Filter out getters/setters/relationships
-            $behaviorMethods = array_filter($methods, function($method) {
-                $name = $method->getName();
-                
-                $isGetter = str_starts_with($name, 'get');
-                $isSetter = str_starts_with($name, 'set');
-                $isRelationship = in_array($name, ['belongsTo', 'hasMany', 'hasOne', 'belongsToMany']);
-                $isMagic = str_starts_with($name, '__');
-                
-                return !$isGetter && !$isSetter && !$isRelationship && !$isMagic;
-            });
-            
-            $this->assertGreaterThan(
-                0,
-                count($behaviorMethods),
-                "Entity {$className} has no behavior methods (anemic model). Add domain behavior."
-            );
-        }
-    }
-    
-    private function getClassNameFromFile(string $file): string
-    {
-        $content = file_get_contents($file);
-        
-        preg_match('/namespace\s+(.+);/', $content, $namespaceMatch);
-        preg_match('/class\s+(\w+)/', $content, $classMatch);
-        
-        if (empty($namespaceMatch[1]) || empty($classMatch[1])) {
-            return '';
-        }
-        
-        return $namespaceMatch[1] . '\\' . $classMatch[1];
-    }
-}
-```
+**Characteristics:**
+- Run in CI/CD pipeline
+- Fast (< 10 seconds)
+- Clear failure messages
+- Easy to add new rules
 
 ### Layer 4: Continuous Integration
 
-```yaml
-# .github/workflows/code-quality.yml
-name: OneSyntax Quality Checks
+**Goal:** Maintain quality over time
 
-on:
-  pull_request:
-  push:
-    branches: [main, develop]
+**Pipeline stages:**
+1. Code style check (PHP CS Fixer)
+2. Static analysis (PHPStan)
+3. Architecture tests
+4. Unit tests
+5. Integration tests
+6. Coverage report
 
-jobs:
-  quality:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.2
-          extensions: mbstring, pdo, pdo_mysql
-          coverage: xdebug
-          
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-        
-      - name: Check code style
-        run: vendor/bin/php-cs-fixer fix --dry-run --diff --verbose
-        
-      - name: Run static analysis
-        run: vendor/bin/phpstan analyze --error-format=github
-        
-      - name: Run architecture tests
-        run: vendor/bin/phpunit tests/Architecture --testdox
-        
-      - name: Run unit tests
-        run: vendor/bin/phpunit --testsuite=Unit --coverage-text
-        
-      - name: Run feature tests
-        run: vendor/bin/phpunit --testsuite=Feature
-        
-      - name: Generate coverage report
-        run: vendor/bin/phpunit --coverage-html build/coverage
-        
-      - name: Upload coverage
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-report
-          path: build/coverage
-```
+**Failure handling:**
+- PR cannot merge if any stage fails
+- Clear feedback on what failed
+- Link to relevant documentation
+- Encourage fixing before re-review
 
-### Layer 5: Weekly Health Check
+### Layer 5: Weekly Health Checks
 
-```php
-// app/Console/Commands/ArchitectureHealthCheck.php
-<?php
+**Goal:** Monitor code quality trends
 
-namespace App\Console\Commands;
+**Automated checks:**
+- Scan for anemic entities
+- Find framework leakage in domain
+- Identify missing tests
+- Check for complex use cases
 
-use Illuminate\Console\Command;
+**Reporting:**
+- Weekly automated report
+- Sent to #engineering channel
+- Trends over time
+- Action items for team
 
-class ArchitectureHealthCheck extends Command
-{
-    protected $signature = 'onesyntax:health-check';
-    protected $description = 'Check OneSyntax architecture health';
-    
-    public function handle()
-    {
-        $this->info('🏥 Running OneSyntax Architecture Health Check...');
-        $this->newLine();
-        
-        $issues = [];
-        
-        // Check 1: Anemic Entities
-        $this->info('Checking for anemic entities...');
-        $anemicEntities = $this->checkAnemicEntities();
-        if (count($anemicEntities) > 0) {
-            $issues['anemic_entities'] = $anemicEntities;
-            $this->warn("Found " . count($anemicEntities) . " anemic entities");
-        } else {
-            $this->info('✓ No anemic entities found');
-        }
-        
-        // Check 2: Framework Leakage
-        $this->info('Checking for framework dependencies in domain...');
-        $frameworkLeaks = $this->checkFrameworkLeakage();
-        if (count($frameworkLeaks) > 0) {
-            $issues['framework_leakage'] = $frameworkLeaks;
-            $this->warn("Found " . count($frameworkLeaks) . " framework dependencies in domain");
-        } else {
-            $this->info('✓ No framework leakage detected');
-        }
-        
-        // Check 3: Missing Tests
-        $this->info('Checking test coverage...');
-        $missingTests = $this->checkMissingTests();
-        if (count($missingTests) > 0) {
-            $issues['missing_tests'] = $missingTests;
-            $this->warn("Found " . count($missingTests) . " files without tests");
-        } else {
-            $this->info('✓ All files have tests');
-        }
-        
-        // Generate report
-        $this->newLine();
-        if (empty($issues)) {
-            $this->info('🎉 All checks passed! Architecture is healthy.');
-            return 0;
-        }
-        
-        $this->error('⚠️  Issues found. See details below:');
-        $this->displayIssues($issues);
-        
-        // Send notification (optional)
-        // $this->notifyTeam($issues);
-        
-        return 1;
-    }
-    
-    private function checkAnemicEntities(): array
-    {
-        $anemic = [];
-        $entityFiles = glob(base_path('app/*/Entities/*.php'));
-        
-        foreach ($entityFiles as $file) {
-            $content = file_get_contents($file);
-            
-            // Simple heuristic: count public methods
-            preg_match_all('/public function (?!get|set|__)\w+/', $content, $matches);
-            
-            if (count($matches[0]) === 0) {
-                $anemic[] = str_replace(base_path(), '', $file);
-            }
-        }
-        
-        return $anemic;
-    }
-    
-    private function checkFrameworkLeakage(): array
-    {
-        $leaks = [];
-        $domainFiles = array_merge(
-            glob(base_path('app/*/Entities/*.php')),
-            glob(base_path('app/*/UseCases/*.php'))
-        );
-        
-        foreach ($domainFiles as $file) {
-            $content = file_get_contents($file);
-            
-            if (str_contains($content, 'use Illuminate\\Http') ||
-                str_contains($content, 'use Illuminate\\Support\\Facades')) {
-                $leaks[] = str_replace(base_path(), '', $file);
-            }
-        }
-        
-        return $leaks;
-    }
-    
-    private function checkMissingTests(): array
-    {
-        $missing = [];
-        
-        $entityFiles = glob(base_path('app/*/Entities/*.php'));
-        $useCaseFiles = glob(base_path('app/*/UseCases/*.php'));
-        
-        foreach (array_merge($entityFiles, $useCaseFiles) as $file) {
-            $testPath = $this->getTestPath($file);
-            
-            if (!file_exists($testPath)) {
-                $missing[] = str_replace(base_path(), '', $file);
-            }
-        }
-        
-        return $missing;
-    }
-    
-    private function getTestPath(string $file): string
-    {
-        // Convert app/Domain/Entities/Entity.php -> app/Domain/Specs/Unit/EntityTest.php
-        $path = str_replace('/Entities/', '/Specs/Unit/', $file);
-        $path = str_replace('/UseCases/', '/Specs/UseCases/', $path);
-        $path = str_replace('.php', 'Test.php', $path);
-        
-        return $path;
-    }
-    
-    private function displayIssues(array $issues): void
-    {
-        foreach ($issues as $type => $items) {
-            $this->newLine();
-            $this->warn(strtoupper(str_replace('_', ' ', $type)) . ':');
-            
-            foreach ($items as $item) {
-                $this->line('  - ' . $item);
-            }
-        }
-    }
-}
-```
+**What it catches:**
+- Architecture drift
+- Accumulating technical debt
+- Patterns of violations
+- Training opportunities
 
-**Schedule weekly:**
-```php
-// app/Console/Kernel.php
-protected function schedule(Schedule $schedule)
-{
-    $schedule->command('onesyntax:health-check')
-        ->weekly()
-        ->mondays()
-        ->at('09:00');
-}
-```
+### Enforcement Maturity Model
+
+**Level 1: Manual (Current State)**
+- Kalpa catches everything in review
+- No automated checks
+- Inconsistent standards
+- High review burden
+
+**Level 2: Basic Automation (Month 1-2)**
+- Code style automated
+- Basic static analysis
+- Simple architecture tests
+- Still requires manual review
+
+**Level 3: Comprehensive (Month 3-4)**
+- All layers implemented
+- Architecture tests robust
+- CI/CD enforcing all checks
+- Seniors can review effectively
+
+**Level 4: Self-Improving (Month 5+)**
+- Team identifies new patterns
+- Automated checks updated
+- Documentation improved
+- System maintains itself
 
 ---
 
@@ -1852,7 +898,7 @@ When seniors understand WHY (not just WHAT), they become ambassadors who can:
 **Wednesday (2 hours): DDD Deep Dive**
 - Read: OneSyntax-Development-System.md (DDD section)
 - Review: Real anemic vs rich examples from our codebase
-- Exercise: Transform one anemic entity together (live coding)
+- Exercise: Transform one anemic entity together
 
 **Friday (1 hour): Homework Assignment**
 - Each senior picks one feature from current project
@@ -1973,6 +1019,7 @@ Kalpa reviews and provides feedback
 
 **Required Reading:**
 - This document (OneSyntax-Development-System.md)
+- OneSyntax Coding Standards (separate document)
 - "Domain-Driven Design" by Eric Evans (relevant chapters)
 - "Clean Architecture" by Robert C. Martin (relevant chapters)
 
@@ -1981,12 +1028,15 @@ Kalpa reviews and provides feedback
 - [Project B] - Example of Purist approach
 - [Project C] - Example of DDD done well
 
-**Slack Channel:**
+**Communication Channels:**
 - #architecture - For questions and discussions
+- Weekly architecture discussions
+- Monthly all-hands on quality
 
 **1-on-1s with Kalpa:**
-- Weekly during training
-- Bi-weekly after autonomy
+- Weekly during training (Weeks 1-12)
+- Bi-weekly during transition (Weeks 13-24)
+- Monthly after autonomy (Month 6+)
 - Discuss: challenges, decisions, growth
 
 ---
@@ -1999,126 +1049,239 @@ This roadmap takes you from current state (everything depends on Kalpa) to targe
 
 **Total Timeline: 6 months to full autonomy**
 
+### Current State Analysis
+
+**Today:**
+- Kalpa spends 50% time on code reviews (20 hours/week)
+- No written standards or documentation
+- No automated enforcement
+- Seniors can't make architecture decisions
+- Quality depends entirely on Kalpa
+
+**Problems:**
+- Doesn't scale beyond 10 developers
+- Kalpa is bottleneck for all projects
+- Inconsistent quality when Kalpa is busy
+- New developers take too long to onboard
+- Can't delegate or take vacation
+
+### Target State
+
+**After 6 months:**
+- Kalpa spends 10% time on reviews (4 hours/week)
+- Complete documentation and standards
+- Automated enforcement catching 80% of issues
+- Seniors making most architecture decisions
+- Quality maintained without Kalpa
+
+**Benefits:**
+- Can scale to 20+ developers
+- Faster delivery (no bottleneck)
+- Consistent quality across all projects
+- New developers productive faster
+- Kalpa can focus on strategy/growth
+
 ### Month 1: Build the Foundation
 
 #### Week 1: Documentation
-- [ ] Kalpa: Finalize this document
-- [ ] Kalpa: Create domain language dictionaries for top 3 projects
-- [ ] Kalpa: Identify 5 before/after examples from codebase
-- [ ] All: Read and review document
+**Deliverables:**
+- [ ] Finalize OneSyntax Development System document
+- [ ] Create domain language dictionaries for top 3 projects
+- [ ] Identify 5-10 before/after examples from codebase
+- [ ] Share and review with all seniors
 
 **Time Investment:**
 - Kalpa: 10 hours
-- Seniors: 4 hours each
+- Seniors: 4 hours each (reading/feedback)
+
+**Success Criteria:**
+- All seniors have read document
+- Initial feedback incorporated
+- Dictionary started for 3 domains
 
 #### Week 2: Enforcement Setup
-- [ ] Kalpa: Configure PHP CS Fixer
-- [ ] Kalpa: Configure PHPStan
-- [ ] Kalpa: Create architecture tests
-- [ ] Kalpa: Set up GitHub workflows
-- [ ] Kalpa: Create PR template
+**Deliverables:**
+- [ ] Configure PHP CS Fixer
+- [ ] Configure PHPStan with custom rules
+- [ ] Create basic architecture tests
+- [ ] Set up GitHub workflows
+- [ ] Create PR template with checklists
 
 **Time Investment:**
 - Kalpa: 12 hours
+- Seniors: 2 hours (testing tools)
+
+**Success Criteria:**
+- All tools running in CI/CD
+- Pre-commit hooks working
+- PR template in use
 
 #### Week 3: Prepare Training
-- [ ] Kalpa: Prepare workshop materials
-- [ ] Kalpa: Create practice exercises
-- [ ] Kalpa: Choose reference implementation project
-- [ ] Kalpa: Schedule training sessions
+**Deliverables:**
+- [ ] Prepare Golden Circle workshop materials
+- [ ] Create DDD/CA practice exercises
+- [ ] Choose reference implementation project
+- [ ] Schedule all Month 2-3 training sessions
 
 **Time Investment:**
 - Kalpa: 6 hours
+
+**Success Criteria:**
+- Calendar invites sent
+- Materials prepared
+- Exercises ready
 
 #### Week 4: Golden Circle + DDD Workshop
-- [ ] Run Monday workshop (2 hours)
-- [ ] Run Wednesday session (2 hours)
-- [ ] Assign homework (Friday)
-- [ ] Seniors: Complete reading and exercises
+**Deliverables:**
+- [ ] Run Monday workshop (Golden Circle + DDD intro)
+- [ ] Run Wednesday session (DDD deep dive)
+- [ ] Assign homework exercises
+- [ ] Seniors complete reading
 
 **Time Investment:**
-- Kalpa: 6 hours
-- Seniors: 8 hours each
+- Kalpa: 6 hours (workshops)
+- Seniors: 8 hours each (workshops + homework)
+
+**Success Criteria:**
+- Seniors can explain OneSyntax mission
+- Seniors understand DDD concepts
+- Homework assigned and started
 
 ### Month 2: Initial Training
 
 #### Week 5: CA Workshop + Practice
+**Deliverables:**
 - [ ] Run CA workshop (Monday, 2 hours)
-- [ ] Run decision practice (Wednesday, 2 hours)
+- [ ] Run decision practice session (Wednesday, 2 hours)
 - [ ] Review homework (Friday, 2 hours)
+- [ ] Discuss architectural approaches
 
 **Time Investment:**
 - Kalpa: 6 hours
 - Seniors: 8 hours each
 
+**Success Criteria:**
+- Seniors understand three approaches
+- Can choose correct approach for scenarios
+- Homework completed and reviewed
+
 #### Week 6-8: Pairing Sessions
+**Deliverables:**
 - [ ] Each senior pairs with Kalpa 2 hours/week
 - [ ] Seniors refactor chosen features
-- [ ] Peer review practice sessions
+- [ ] Peer review practice sessions (Wednesday)
+- [ ] Weekly architecture discussions (Friday)
 
 **Time Investment:**
-- Kalpa: 8 hours/week
+- Kalpa: 8 hours/week (2h × 4 seniors)
 - Seniors: 6 hours/week each
+
+**Success Criteria:**
+- Each senior completes 2 refactoring exercises
+- Peer reviews improving in quality
+- Shared learnings documented
 
 ### Month 3: Hands-On Practice
 
 #### Week 9-12: Refactoring Projects
+**Deliverables:**
 - [ ] Seniors complete assigned refactoring tasks
-- [ ] Weekly architecture discussions (1 hour)
-- [ ] Kalpa provides meta-reviews
+- [ ] Weekly architecture discussions (1 hour Friday)
+- [ ] Kalpa provides meta-reviews of PR reviews
 - [ ] Continuous improvement of enforcement tools
 
 **Time Investment:**
 - Kalpa: 6 hours/week
 - Seniors: 8 hours/week each
 
-**Milestone:** By end of Month 3, seniors should be able to identify and fix DDD/CA violations independently.
+**Success Criteria:**
+- 2 refactored features per senior
+- Seniors giving good code review feedback
+- Architectural violations decreasing
+
+**Milestone Check:** 
+By end of Month 3, seniors should be able to:
+- Identify anemic entities independently
+- Explain WHY behind DDD/CA decisions
+- Give educational feedback in reviews
+- Choose correct architectural approach
 
 ### Month 4: Teaching Others
 
 #### Week 13-14: Prepare Teaching Materials
-- [ ] Seniors create before/after examples
+**Deliverables:**
+- [ ] Seniors create before/after examples from their domains
 - [ ] Seniors create anti-pattern guides
-- [ ] Kalpa reviews materials
+- [ ] Seniors prepare junior workshop materials
+- [ ] Kalpa reviews and provides feedback
 
 **Time Investment:**
-- Kalpa: 4 hours
+- Kalpa: 4 hours (reviews)
 - Seniors: 6 hours each
 
+**Success Criteria:**
+- Teaching materials created
+- Materials reviewed and approved
+- Workshops scheduled
+
 #### Week 15-16: Run Junior Workshops
-- [ ] Each senior teaches one workshop
+**Deliverables:**
+- [ ] Each senior teaches 1-hour workshop to juniors
 - [ ] Kalpa observes and provides feedback
-- [ ] Collect feedback from juniors
+- [ ] Collect feedback from junior developers
+- [ ] Iterate on teaching materials
 
 **Time Investment:**
-- Kalpa: 4 hours
-- Seniors: 4 hours each
+- Kalpa: 4 hours (observing)
+- Seniors: 4 hours each (prep + delivery)
+- Juniors: 4 hours total (attending)
+
+**Success Criteria:**
+- All seniors complete teaching session
+- Positive feedback from juniors
+- Juniors understand basic DDD/CA concepts
 
 ### Month 5: Supervised Autonomy
 
 #### Week 17-20: Seniors Lead Reviews
-- [ ] Seniors handle all code reviews
+**Deliverables:**
+- [ ] Seniors handle 100% of code reviews
 - [ ] Kalpa spot-checks 20% of reviews
 - [ ] Weekly retro on decisions made
 - [ ] Document edge cases and learnings
 
 **Time Investment:**
-- Kalpa: 4 hours/week (spot checks)
-- Seniors: Normal review time
+- Kalpa: 4 hours/week (spot checks + retros)
+- Seniors: Normal review time (now doing all reviews)
 
-**Milestone:** By end of Month 5, seniors should handle 80% of decisions without Kalpa.
+**Success Criteria:**
+- Reviews maintain quality without Kalpa
+- Fewer escalations needed
+- Documented edge cases growing
+- Team confidence increasing
+
+**Milestone Check:**
+By end of Month 5, seniors should handle 80% of decisions without Kalpa.
 
 ### Month 6: Full Autonomy
 
 #### Week 21-24: Independence
+**Deliverables:**
 - [ ] Seniors fully autonomous for standard decisions
-- [ ] Kalpa only consulted for major changes
-- [ ] Monthly architecture review meeting
-- [ ] System health checks automated
+- [ ] Kalpa only consulted for major architectural changes
+- [ ] Monthly architecture review meeting established
+- [ ] System health checks running automatically
+- [ ] Documentation updated based on learnings
 
 **Time Investment:**
-- Kalpa: 2-3 hours/week (strategic only)
+- Kalpa: 2-3 hours/week (strategic decisions only)
 - Seniors: Normal workload
+
+**Success Criteria:**
+- Seniors making decisions independently
+- Quality metrics maintained or improved
+- Kalpa's review time < 10%
+- Team functioning without bottlenecks
 
 **Target State Achieved:**
 - ✅ Seniors make DDD/CA decisions independently
@@ -2134,6 +1297,7 @@ This roadmap takes you from current state (everything depends on Kalpa) to targe
 - [ ] All seniors can explain WHY behind DDD/CA
 - [ ] Code quality metrics stable or improving
 - [ ] Fewer architecture violations in PRs
+- [ ] Seniors giving educational feedback
 
 **After Month 6:**
 - [ ] Seniors handle 80%+ of code reviews
@@ -2141,28 +1305,45 @@ This roadmap takes you from current state (everything depends on Kalpa) to targe
 - [ ] Junior devs understand OneSyntax standards
 - [ ] Client feedback remains positive
 - [ ] Kalpa's code review time < 20%
+- [ ] Can onboard new developers without Kalpa
 
 ### Risk Mitigation
 
 **Risk 1: Seniors don't have time for training**
-- Mitigation: Reduce billable hours target during training months
-- Allocate 20% of senior time to training (10 hours/week)
-- Adjust project timelines accordingly
+- **Impact:** High - Training fails if not prioritized
+- **Mitigation:** Reduce billable hours target during training months
+- **Action:** Allocate 20% of senior time to training (10 hours/week)
+- **Adjust:** Project timelines to account for training time
 
 **Risk 2: Resistance to change**
-- Mitigation: Start with Golden Circle workshop
-- Frame as leadership development, not criticism
-- Involve seniors in creating solutions
+- **Impact:** Medium - Adoption slow if seniors resistant
+- **Mitigation:** Start with Golden Circle workshop, explain WHY
+- **Action:** Frame as leadership development, not criticism
+- **Involve:** Seniors in creating solutions
 
 **Risk 3: Training takes longer than expected**
-- Mitigation: Build buffer into timeline
-- Can extend Phase 2 if needed
-- Better to train well than train fast
+- **Impact:** Medium - Timeline extends
+- **Mitigation:** Build buffer into timeline
+- **Action:** Can extend Phase 2 if needed
+- **Principle:** Better to train well than train fast
 
 **Risk 4: Junior devs fall behind**
-- Mitigation: Seniors teach juniors in Month 4
-- Provide simplified documentation for juniors
-- Pair juniors with seniors on real work
+- **Impact:** Low - Productivity dip temporary
+- **Mitigation:** Seniors teach juniors in Month 4
+- **Action:** Provide simplified documentation for juniors
+- **Support:** Pair juniors with seniors on real work
+
+**Risk 5: Quality drops during transition**
+- **Impact:** High - Client impact if quality suffers
+- **Mitigation:** Kalpa maintains oversight through Month 5
+- **Action:** Spot-check reviews, provide feedback
+- **Escalation:** Step in if quality issues detected
+
+**Risk 6: Enforcement tools too strict**
+- **Impact:** Low - Developer frustration
+- **Mitigation:** Start lenient, increase strictness gradually
+- **Action:** Gather feedback, adjust rules
+- **Balance:** Helpful vs hindering
 
 ### Investment Summary
 
@@ -2174,185 +1355,262 @@ This roadmap takes you from current state (everything depends on Kalpa) to targe
 - Month 5: ~16 hours (spot checks)
 - Month 6+: ~10 hours/month (strategic only)
 
-**Total: ~120 hours over 6 months = 3 weeks of focused work spread over 6 months**
+**Total: ~120 hours over 6 months**
 
 **Return on Investment:**
-- Current: 50% of Kalpa's time on reviews = 20 hours/week
-- Target: 10% of Kalpa's time on reviews = 4 hours/week
-- **Savings: 16 hours/week after 6 months = 64 hours/month**
+- Current state: 50% of time = 20 hours/week on reviews
+- Target state: 10% of time = 4 hours/week on reviews
+- **Savings: 16 hours/week after 6 months**
+- **ROI: 64 hours/month saved after 2-month break-even**
 
-**Break-even: After 2 months, investment pays for itself**
+**Break-even Analysis:**
+- Investment: 120 hours
+- Savings: 16 hours/week
+- Break-even: 7.5 weeks (< 2 months)
+- After Month 2, every week is net positive
+
+**Long-term Value:**
+- Scalable to 20+ developers
+- Quality maintained without Kalpa
+- Faster onboarding of new developers
+- Kalpa can focus on growth/strategy
+- Sustainable competitive advantage
 
 ---
 
-## Appendix
+## Quick Reference Guide
 
-### Quick Reference Checklists
+### Before Creating an Entity
 
-#### Before Creating an Entity
-
+Ask yourself:
 - [ ] What's the ubiquitous language term?
 - [ ] What business rules does this entity have?
 - [ ] What behavior methods should it have?
 - [ ] Do I need value objects?
 - [ ] Where does validation happen?
 
-#### Before Creating a UseCase
+### Before Creating a UseCase
 
-- [ ] What's the business workflow?
-- [ ] Which approach: Pragmatic/Standard/Purist?
-- [ ] What are the inputs/outputs?
+Ask yourself:
+- [ ] What's the business workflow I'm implementing?
+- [ ] Which approach fits: Pragmatic/Standard/Purist?
+- [ ] What are the inputs and outputs?
 - [ ] What can go wrong (exceptions)?
 - [ ] How will I test this?
+- [ ] Does this belong in an existing UseCase?
 
-#### Before Submitting a PR
+### Before Submitting a PR
 
+Verify:
 - [ ] Ran PHP CS Fixer
 - [ ] Ran PHPStan
 - [ ] All tests pass
 - [ ] Architecture tests pass
 - [ ] PR checklist completed
-- [ ] Domain Dictionary updated (if needed)
+- [ ] Domain Dictionary updated (if new terms added)
+- [ ] Tests written for new code
+- [ ] Documentation updated if needed
 
-### Common Patterns
+### When Reviewing Code
 
-#### Creating a Value Object
+Check for:
+- [ ] **DDD:** Ubiquitous language used?
+- [ ] **DDD:** Entities have behavior?
+- [ ] **DDD:** Business rules explicit?
+- [ ] **CA:** No framework in domain?
+- [ ] **CA:** Business logic in right layer?
+- [ ] **CA:** Correct approach chosen?
+- [ ] **Quality:** Tests adequate?
+- [ ] **Quality:** No security issues?
 
-```php
-class [Name]
-{
-    private [type] $value;
-    
-    private function __construct([type] $value)
-    {
-        $this->validate($value);
-        $this->value = $value;
-    }
-    
-    public static function from[Source]([type] $value): self
-    {
-        return new self($value);
-    }
-    
-    private function validate([type] $value): void
-    {
-        // Business validation rules
-    }
-    
-    public function equals([Name] $other): bool
-    {
-        return $this->value === $other->value;
-    }
-    
-    public function toString(): string
-    {
-        return (string) $this->value;
-    }
-}
-```
+### Decision Framework: Which CA Approach?
 
-#### Creating a Repository Interface
+**Use Pragmatic when:**
+- Simple CRUD
+- Low complexity
+- Small team
+- Quick prototype
 
-```php
-// app/[Domain]/UseCases/Repositories/[Entity]RepositoryInterface.php
-namespace App\[Domain]\UseCases\Repositories;
+**Use Standard when:**
+- Medium complexity
+- Multiple data sources
+- Need testability
+- Team project
 
-use App\[Domain]\Entities\[Entity];
+**Use Purist when:**
+- High complexity
+- Multiple interfaces
+- Enterprise scale
+- Different output formats
 
-interface [Entity]RepositoryInterface
-{
-    public function findById(string $id): ?[Entity];
-    public function save([Entity] $entity): [Entity];
-    public function delete(string $id): bool;
-    
-    // Add domain-specific query methods
-    public function findActive(): array;
-}
-```
+**When in doubt:** Use Standard
 
-#### Creating a UseCase
+### Common Patterns Reference
 
-```php
-// app/[Domain]/UseCases/[ActionName].php
-namespace App\[Domain]\UseCases;
+For detailed code examples, see: **OneSyntax Coding Standards** (separate document)
 
-use App\[Domain]\Entities\[Entity];
-use App\[Domain]\UseCases\Repositories\[Entity]RepositoryInterface;
+**Patterns covered there:**
+- Creating Value Objects
+- Creating Repository Interfaces
+- Creating UseCases
+- Creating Entities with Behavior
+- Testing Patterns
+- Controller Patterns
 
-class [ActionName]
-{
-    private $repository;
-    
-    public function __construct([Entity]RepositoryInterface $repository)
-    {
-        $this->repository = $repository;
-    }
-    
-    public function execute([Input] $input): [Output]
-    {
-        // 1. Get entities from repository
-        // 2. Execute business logic (call entity methods)
-        // 3. Save entities
-        // 4. Return result
-    }
-}
-```
+---
 
-### Troubleshooting
+## Troubleshooting
+
+### Common Questions
 
 **Q: When should I create a Value Object vs just use a string?**
+
 A: Create a Value Object when:
 - The concept has business meaning
 - It has validation rules
 - It appears in multiple places
 - Future rules might be added
 
+Examples: EmailAddress, MoneyAmount, InterestLevel, BookingStatus
+
 **Q: My entity is getting too big. What should I do?**
+
 A: Consider:
-- Extracting value objects
-- Creating separate aggregates
+- Extracting value objects for complex properties
+- Creating separate aggregates if managing multiple concepts
 - Moving some behavior to domain services
 - Reviewing if it's actually multiple entities
 
 **Q: Should I use Eloquent relationships in entities?**
+
 A: Yes, pragmatically. But:
-- Don't use relationships in business logic
+- Don't use relationships in business logic directly
 - Load relationships explicitly when needed
 - Consider repositories for complex queries
+- Keep business behavior separate from data access
 
-**Q: How do I test UseCases that send emails?**
+**Q: How do I test UseCases that send emails/notifications?**
+
 A: Use dependency injection:
 - Inject notification service interface
-- Mock in tests
+- Mock the interface in tests
 - Real implementation in production
+- Test that service was called correctly
 
 **Q: Can I mix approaches in one project?**
+
 A: Yes, but be consistent per domain:
-- Simple domains: Pragmatic
-- Complex domains: Standard or Purist
+- Simple domains can use Pragmatic
+- Complex domains use Standard or Purist
 - Document the choice in domain README
+- Don't mix within a single domain
 
-### Glossary
+**Q: What if the client's language is unclear or inconsistent?**
 
-**Anemic Model:** Entity with no business logic, just getters/setters
+A: This is a partnership opportunity:
+- Schedule session to clarify terms
+- Help client define their language
+- Document agreed terms in Domain Dictionary
+- Update as understanding improves
+- This IS the partnership in action
 
-**Ubiquitous Language:** Business terminology used consistently in code and conversation
+### Escalation Path
 
-**Value Object:** Immutable object defined by its value, not identity
+**Level 1: Check Documentation**
+- This document
+- Coding Standards document
+- Domain README files
+- Reference projects
 
-**Aggregate:** Cluster of entities treated as a single unit
+**Level 2: Ask in #architecture**
+- Post question with context
+- Tag relevant seniors
+- Share code example if applicable
+- Document answer for future
 
-**Repository:** Abstraction for data access
+**Level 3: Architecture Discussion**
+- Bring to weekly architecture meeting
+- Discuss with team
+- Make decision together
+- Document decision
 
-**Use Case / Interactor:** Application business logic coordinator
+**Level 4: Consult Kalpa**
+- Major architectural decisions
+- New patterns or approaches
+- Client-impacting decisions
+- When team can't reach consensus
 
-**Presenter:** Formats output for specific interface
+---
 
-**Domain Event:** Something that happened in the domain
+## Glossary
 
-**Entity:** Object with identity and lifecycle
+**Anemic Model:** Entity with no business logic, just getters/setters and database relationships
 
-**Service:** Stateless operation that doesn't belong to any entity
+**Ubiquitous Language:** Business terminology used consistently in code and conversation between developers and domain experts
+
+**Value Object:** Immutable object defined by its value rather than identity (e.g., MoneyAmount, EmailAddress)
+
+**Aggregate:** Cluster of entities and value objects treated as a single unit for data changes
+
+**Repository:** Abstraction for data access that provides collection-like interface to domain objects
+
+**Use Case / Interactor:** Application business logic coordinator that orchestrates domain objects to fulfill a specific business workflow
+
+**Presenter:** Formats output for specific interface (JSON, CLI, HTML) keeping use cases interface-agnostic
+
+**Domain Event:** Something that happened in the domain that domain experts care about
+
+**Entity:** Object with unique identity and lifecycle (e.g., Booking, User, Order)
+
+**Service:** Stateless operation that doesn't naturally belong to any entity
+
+**Rich Domain Model:** Domain model where business logic and behavior live in domain objects (entities, value objects)
+
+**Clean Architecture:** Architectural pattern separating business logic from frameworks, UI, and infrastructure
+
+**Dependency Rule:** Principle that dependencies point inward toward domain (IO → UseCases → Entities)
+
+---
+
+## Appendix: Document Updates
+
+### When to Update This Document
+
+**Update immediately when:**
+- Core principles change
+- New architectural patterns adopted
+- Training process modified
+- Success metrics change
+
+**Update quarterly when:**
+- New anti-patterns identified
+- Better examples found
+- Process improvements discovered
+- Feedback from team suggests changes
+
+**Version Control:**
+- Keep in Git with proper commit messages
+- Tag major versions
+- Announce changes in #architecture
+- Train team on significant changes
+
+### Continuous Improvement
+
+**Feedback Sources:**
+- Code review discussions
+- Architecture meetings
+- Training sessions
+- Retros and post-mortems
+- New developer onboarding experience
+
+**Improvement Process:**
+1. Identify gap or confusion
+2. Discuss with seniors
+3. Draft improvement
+4. Review with team
+5. Update document
+6. Communicate changes
+7. Update training materials
 
 ---
 
@@ -2360,7 +1618,7 @@ A: Yes, but be consistent per domain:
 
 - **v1.0 (November 2025)** - Initial release
   - Golden Circle alignment
-  - DDD principles and examples
+  - DDD principles (without code examples)
   - Clean Architecture guidelines
   - Code review standards
   - Testing standards
@@ -2374,11 +1632,13 @@ A: Yes, but be consistent per domain:
 
 **Questions?** Ask in #architecture Slack channel
 
-**Need clarification?** Schedule time with Kalpa
+**Need clarification?** Schedule time with Kalpa or trained seniors
 
 **Found an issue?** Create PR to update this document
 
 **Success story?** Share in team meeting!
+
+**Urgent architecture decision?** Escalate per guidelines above
 
 ---
 
