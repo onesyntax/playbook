@@ -470,6 +470,59 @@ TDD ensures:
 3. REFACTOR - Improve design
 ```
 
+### The ZOMBIES Approach
+
+**Write tests incrementally from simple to complex.**
+
+When writing tests, follow the ZOMBIES progression:
+
+- **Z**ero - Start with the simplest case (empty, null, zero)
+- **O**ne - Test with a single element or simple input
+- **M**any - Test with multiple elements or complex scenarios
+- **B**oundaries - Test edge cases and boundary conditions
+- **I**nterface definition - Define clear interfaces/contracts
+- **E**xceptional behavior - Test error handling and exceptions
+- **S**imple scenarios - Keep tests simple and focused
+
+**Why ZOMBIES?**
+- Builds confidence gradually
+- Ensures comprehensive coverage
+- Makes debugging easier
+- Creates maintainable test suites
+
+**Example progression:**
+```typescript
+// Z - Zero
+it('should return zero for empty order', () => {
+  expect(order.calculateTotal()).toEqual(Money.zero());
+});
+
+// O - One
+it('should calculate total with one item', () => {
+  order.addItem(product, 1);
+  expect(order.calculateTotal()).toEqual(Money.of(10));
+});
+
+// M - Many
+it('should calculate total with multiple items', () => {
+  order.addItem(productA, 2);
+  order.addItem(productB, 3);
+  expect(order.calculateTotal()).toEqual(Money.of(35));
+});
+
+// B - Boundaries
+it('should reject negative quantity', () => {
+  expect(() => order.addItem(product, -1)).toThrow();
+});
+
+// E - Exceptions
+it('should throw when mixing currencies', () => {
+  expect(() => order.addMixedCurrencyItems()).toThrow(CurrencyMismatchError);
+});
+```
+
+**See:** [ZOMBIES Testing Checklist](../quick-reference/zombies-testing-checklist.md) for complete guide.
+
 ### Example: TDD for Domain Model
 
 #### Step 1: RED (Write failing test)

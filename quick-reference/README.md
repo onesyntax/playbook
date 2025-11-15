@@ -44,6 +44,19 @@ The golden rule: Dependencies always point inward.
 
 ---
 
+### [ZOMBIES Testing Checklist](zombies-testing-checklist.md)
+**Systematic approach to writing tests from simple to complex**
+
+Use this when:
+- Writing unit tests
+- Following TDD
+- Ensuring test coverage
+- Building test suites incrementally
+
+Start simple. Build confidence. Add complexity gradually.
+
+---
+
 ## 🖨️ How to Use
 
 1. **Print them** - Keep physical copies at your desk
