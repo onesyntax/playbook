@@ -22,6 +22,9 @@ At OneSyntax, we follow a proven development system that ensures:
 
 **These aren't optional. They're how OneSyntax works.**
 
+> **💡 Want to understand WHY these specific practices?**
+> See [Why These Practices? First Principles Reasoning](why-these-practices.md) for the complete justification from trust problems to technical solutions.
+
 ---
 
 ## Part 1: Domain-Driven Design (DDD)

@@ -34,6 +34,7 @@ This is not optional reading. Your success at OneSyntax depends on understanding
 → [Reference library](#-reference-library-deep-dives) (comprehensive guides)
 
 **🎯 Looking for something specific?**
+- Why DDD/Clean Architecture/TDD? → [Why These Practices?](2-standards/why-these-practices.md)
 - Code review checklist → [Code Review](3-processes/code-review.md)
 - Career growth → [Career Framework](4-people/career.md)
 - Quality initiative → [90-Day Plan](5-execution/90-day-plan.md)
@@ -58,6 +59,10 @@ This is not optional reading. Your success at OneSyntax depends on understanding
 ### 📐 Standards
 **How we build software**
 
+- [Why These Practices?](2-standards/why-these-practices.md) - First principles reasoning:
+  - From trust problems to technical solutions
+  - Why DDD, Clean Architecture, and TDD specifically
+  - Trade-offs we accept and when NOT to use these practices
 - [Development System](2-standards/development-system.md) - Complete guide to:
   - Domain-Driven Design (DDD)
   - Clean Architecture
@@ -155,6 +160,7 @@ onesyntax-playbook/
 │   └── our-values.md           # Core values
 │
 ├── 2-standards/                 # What we build
+│   ├── why-these-practices.md  # First principles reasoning
 │   └── development-system.md   # DDD + Clean Architecture + TDD
 │
 ├── 3-processes/                 # How we work
