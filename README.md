@@ -22,18 +22,24 @@ This is not optional reading. Your success at OneSyntax depends on understanding
 
 ---
 
-## Quick Start
+## 🚀 Quick Start - Choose Your Path
 
-**New to OneSyntax?** Start here:
-1. [Why We Exist](1-mission/why-we-exist.md) - Our WHY
-2. [Development System](2-standards/development-system.md) - Our technical standards
-3. [Training Program](4-people/training.md) - Your learning path
+**🆕 I'm new here**
+→ [2-minute overview](1-mission/why-we-exist.md) then [onboarding checklist](#for-new-team-members)
 
-**Looking for something specific?**
+**💻 I need to code something**
+→ [Development standards](2-standards/development-system.md) | [Code review checklist](3-processes/code-review.md)
+
+**📚 I want deep understanding**
+→ [Reference library](#-reference-library-deep-dives) (comprehensive guides)
+
+**🎯 Looking for something specific?**
 - Code review checklist → [Code Review](3-processes/code-review.md)
 - Career growth → [Career Framework](4-people/career.md)
 - Quality initiative → [90-Day Plan](5-execution/90-day-plan.md)
 - Setting up tools → [Enforcement Setup](6-tools/enforcement-setup.md)
+- Architecture patterns → [Architecture Guide](reference/architecture-guide.md)
+- Rewards & recognition → [Rewards Program](reference/rewards-program.md)
 
 ---
 
@@ -103,15 +109,49 @@ This is not optional reading. Your success at OneSyntax depends on understanding
 
 ---
 
+### 📋 Quick Reference (Cheat Sheets)
+**One-page guides to print and keep at your desk**
+
+Your daily tools for excellence:
+
+- [DDD Checklist](quick-reference/ddd-checklist.md) - Entities, Value Objects, Aggregates quick reference
+- [Code Review Checklist](quick-reference/code-review-checklist.md) - Author and reviewer checklists
+- [Clean Architecture Cheatsheet](quick-reference/clean-architecture-cheatsheet.md) - Layer structure and dependency rules
+
+*Print these! Keep them visible! Use them daily!*
+
+**Pro tip:** Review the appropriate checklist before every PR.
+
+---
+
+### 📖 Reference Library (Deep Dives)
+**Comprehensive guides for deep understanding**
+
+When practical guides aren't enough and you need complete context:
+
+- [Architecture Guide](reference/architecture-guide.md) - Complete Laravel Clean Architecture reference
+- [System Deep Dive](reference/system-deep-dive.md) - Full DDD + Clean Architecture + TDD system (1,647 lines)
+- [Enforcement Deep Dive](reference/enforcement-deep-dive.md) - Complete enforcement & accountability system (2,698 lines)
+- [Execution Complete](reference/execution-complete.md) - Full 6-month execution plan with budget details
+- [Promotion Framework](reference/promotion-framework.md) - Comprehensive career progression guide
+- [Rewards Program](reference/rewards-program.md) - Complete rewards & recognition program
+
+*These are your "deep dive" resources when you need full context and philosophy*
+
+**Pro tip:** Start with practical guides in numbered directories, then consult reference library when you need more detail.
+
+---
+
 ## Repository Structure
 
 ```
 onesyntax-playbook/
-├── README.md                    # You are here
+├── README.md                    # You are here (start here!)
+├── SETUP.md                     # Setup instructions
 ├── setup.sh                     # Quick setup script
 │
 ├── 1-mission/                   # Why we exist
-│   ├── why-we-exist.md         # Golden Circle
+│   ├── why-we-exist.md         # Golden Circle (WHY, HOW, WHAT)
 │   └── our-values.md           # Core values
 │
 ├── 2-standards/                 # What we build
@@ -128,11 +168,27 @@ onesyntax-playbook/
 ├── 5-execution/                 # How we implement
 │   └── 90-day-plan.md          # Quality initiative
 │
-└── 6-tools/                     # What we use
-    └── enforcement-setup.md    # ArchUnit, linters, CI/CD
+├── 6-tools/                     # What we use
+│   └── enforcement-setup.md    # ArchUnit, linters, CI/CD
+│
+├── quick-reference/             # Printable cheat sheets
+│   ├── ddd-checklist.md        # DDD patterns quick reference
+│   ├── code-review-checklist.md # Code review guide
+│   └── clean-architecture-cheatsheet.md # CA layers & rules
+│
+└── reference/                   # Deep dive guides
+    ├── architecture-guide.md   # Laravel Clean Architecture
+    ├── system-deep-dive.md     # Complete DDD/CA/TDD guide
+    ├── enforcement-deep-dive.md # Full enforcement system
+    ├── execution-complete.md   # 6-month execution plan
+    ├── promotion-framework.md  # Complete career guide
+    └── rewards-program.md      # Rewards & recognition
 ```
 
-**Numbers show the recommended reading order.**
+**📌 Navigation:**
+- **Numbers (1-6)** → Recommended reading order for practical guides
+- **quick-reference/** → Printable cheat sheets for daily use
+- **reference/** → Deep dives when you need comprehensive coverage
 
 ---
 

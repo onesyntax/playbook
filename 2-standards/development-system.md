@@ -730,6 +730,21 @@ class OrderController {
 
 ---
 
+## 📚 Want More Detail?
+
+This is the **practical guide** (751 lines) - focused on day-to-day application.
+
+For **comprehensive coverage** including:
+- ✅ Detailed examples for every pattern
+- ✅ Common pitfalls and how to avoid them
+- ✅ Philosophy and reasoning behind each decision
+- ✅ Advanced techniques and edge cases
+- ✅ Full context and theory (1,647 lines)
+
+**See:** [System Deep Dive](../reference/system-deep-dive.md)
+
+---
+
 ## Learning Resources
 
 - **Book:** Domain-Driven Design by Eric Evans

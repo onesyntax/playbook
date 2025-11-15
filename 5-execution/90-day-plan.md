@@ -773,6 +773,23 @@ Kalpa
 
 ---
 
+## 📚 Want More Detail?
+
+This is the **practical 90-day guide** (794 lines) - focused on execution essentials.
+
+For the **complete 6-month execution plan** including:
+- ✅ Detailed week-by-week implementation plan
+- ✅ Complete budget & resource allocation ($15K details)
+- ✅ Client communication templates
+- ✅ Risk management strategies
+- ✅ Decision framework for trade-offs
+- ✅ Stakeholder communication plan
+- ✅ Full context (1,680 lines - 2x more comprehensive)
+
+**See:** [Execution Complete](../reference/execution-complete.md)
+
+---
+
 ## Remember
 
 **This isn't just process improvement.**

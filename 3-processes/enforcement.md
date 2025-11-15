@@ -396,6 +396,22 @@ classes()
 
 ---
 
+## 📚 Want More Detail?
+
+This is the **practical guide** (426 lines) - focused on implementation essentials.
+
+For the **complete enforcement system** including:
+- ✅ Detailed 90-day transformation plan
+- ✅ Training program details
+- ✅ Consequences & accountability framework
+- ✅ Budget & resource allocation
+- ✅ Success metrics & KPIs
+- ✅ Full context (2,698 lines - 6x more comprehensive)
+
+**See:** [Enforcement Deep Dive](../reference/enforcement-deep-dive.md)
+
+---
+
 ## Questions?
 
 **About enforcement:**

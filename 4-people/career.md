@@ -589,6 +589,22 @@ Reduction: 200,000 LKR/month (44%)
 
 ---
 
+## 📚 Want More Detail?
+
+This is the **practical guide** (621 lines) - focused on career levels and criteria.
+
+For the **comprehensive promotion framework** including:
+- ✅ Detailed assessment & review process
+- ✅ Compensation framework with salary bands
+- ✅ Promotion timelines and expectations
+- ✅ Special tracks (IC vs Management)
+- ✅ Promotion failures & appeals process
+- ✅ Full context (1,344 lines - 2x more comprehensive)
+
+**See:** [Promotion Framework](../reference/promotion-framework.md)
+
+---
+
 ## Questions?
 
 **About your career:**
