@@ -355,27 +355,35 @@ At OneSyntax:
 
 ## Compensation
 
-### Salary Bands (USD, Annual)
+### Salary Bands (LKR, Monthly)
 
 **Individual Contributors:**
-- IC1 (Junior): $60,000 - $85,000
-- IC2 (Developer): $85,000 - $120,000
-- IC3 (Senior): $120,000 - $160,000
-- IC4 (Staff): $160,000 - $220,000
-- IC5 (Principal): $220,000 - $300,000+
+- IC1 (Junior): 30,000 - 100,000 LKR/month
+- IC2 (Developer): 100,000 - 250,000 LKR/month
+- IC3 (Senior): 250,000 - 500,000 LKR/month
+- IC4 (Staff): 500,000 - 800,000 LKR/month
+- IC5 (Principal): 800,000 - 1,200,000+ LKR/month
 
 **Management:**
-- M1 (Lead): $130,000 - $170,000
-- M2 (Manager): $170,000 - $220,000
-- M3 (Director): $220,000 - $280,000
-- M4 (VP): $280,000 - $350,000+
+- M1 (Lead): 300,000 - 550,000 LKR/month
+- M2 (Manager): 550,000 - 800,000 LKR/month
+- M3 (Director): 800,000 - 1,100,000 LKR/month
+- M4 (VP): 1,100,000 - 1,500,000+ LKR/month
+
+**USD Equivalent (Annual, approximate conversion at 300 LKR/USD):**
+- IC1: $1,200 - $4,000/year
+- IC2: $4,000 - $10,000/year
+- IC3: $10,000 - $20,000/year
+- IC4: $20,000 - $32,000/year
+- IC5: $32,000 - $48,000+/year
 
 **Factors affecting placement:**
-- Market rate for location
+- Market rate for Sri Lankan tech sector
 - Specialized skills/expertise
 - Business impact
 - Tenure at level
 - Performance
+- Remote/international client experience
 
 ### Promotion Compensation
 
@@ -483,13 +491,13 @@ Demotion happens when:
 
 **Example:**
 ```
-Senior Developer ($150k) → Developer
-New salary: $120k (top of IC2 band)
-Reduction: $30k (20%)
+Senior Developer (450,000 LKR/month) → Developer
+New salary: 250,000 LKR/month (top of IC2 band)
+Reduction: 200,000 LKR/month (44%)
 ```
 
 **Severance Alternative:**
-- If reduction > 20%, offer 3-month severance + termination
+- If reduction > 40%, offer 3-month severance + termination
 - Employee chooses: accept demotion or take severance
 
 ### Path Back to Promotion
