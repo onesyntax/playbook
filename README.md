@@ -36,6 +36,10 @@ This is not optional reading. Your success at OneSyntax depends on understanding
 **🎯 Looking for something specific?**
 - Why DDD/Clean Architecture/TDD? → [Why These Practices?](2-standards/why-these-practices.md)
 - Code review checklist → [Code Review](3-processes/code-review.md)
+- Pair programming guide → [Pair Programming](3-processes/pair-programming.md)
+- When to refactor? → [Refactoring Decisions](reference/refactoring-decisions.md)
+- Sprint planning → [Planning Game](3-processes/planning-game.md)
+- Work-life balance → [Sustainable Pace](4-people/sustainable-pace.md)
 - Career growth → [Career Framework](4-people/career.md)
 - Quality initiative → [90-Day Plan](5-execution/90-day-plan.md)
 - Setting up tools → [Enforcement Setup](6-tools/enforcement-setup.md)
@@ -67,6 +71,8 @@ This is not optional reading. Your success at OneSyntax depends on understanding
   - Domain-Driven Design (DDD)
   - Clean Architecture
   - Test-Driven Development (TDD)
+- [Simple Design](2-standards/simple-design.md) - Balancing YAGNI with architectural standards
+- [Acceptance Tests](2-standards/acceptance-tests.md) - Customer tests and Given-When-Then format
 
 *The technical foundation of everything we do*
 
@@ -77,6 +83,10 @@ This is not optional reading. Your success at OneSyntax depends on understanding
 
 - [Enforcement](3-processes/enforcement.md) - 3-layer quality system
 - [Code Review](3-processes/code-review.md) - Review checklist and process
+- [Collective Ownership](3-processes/collective-ownership.md) - Shared code responsibility with individual accountability
+- [Pair Programming](3-processes/pair-programming.md) - When and how to pair effectively
+- [Planning Game](3-processes/planning-game.md) - Sprint planning and story estimation
+- [Small Releases](3-processes/small-releases.md) - CI/CD and deployment strategy
 
 *Systems that keep us honest*
 
@@ -87,6 +97,8 @@ This is not optional reading. Your success at OneSyntax depends on understanding
 
 - [Training](4-people/training.md) - 12-week deliberate practice program
 - [Career](4-people/career.md) - Career progression from IC1 to IC5/M4
+- [Sustainable Pace](4-people/sustainable-pace.md) - 40-hour work week and burnout prevention
+- [Whole Team](4-people/whole-team.md) - Cross-functional collaboration and Three Amigos
 
 *Your path to excellence*
 
@@ -122,6 +134,9 @@ Your daily tools for excellence:
 - [DDD Checklist](quick-reference/ddd-checklist.md) - Entities, Value Objects, Aggregates quick reference
 - [Code Review Checklist](quick-reference/code-review-checklist.md) - Author and reviewer checklists
 - [Clean Architecture Cheatsheet](quick-reference/clean-architecture-cheatsheet.md) - Layer structure and dependency rules
+- [XP Practices Checklist](quick-reference/xp-practices-checklist.md) - Collaboration and planning practices
+- [Refactoring Checklist](quick-reference/refactoring-checklist.md) - Safe tidyings and when to refactor
+- [Sprint Planning Template](quick-reference/sprint-planning-template.md) - Complete sprint planning guide
 
 *Print these! Keep them visible! Use them daily!*
 
@@ -140,6 +155,9 @@ When practical guides aren't enough and you need complete context:
 - [Execution Complete](reference/execution-complete.md) - Full 6-month execution plan with budget details
 - [Promotion Framework](reference/promotion-framework.md) - Comprehensive career progression guide
 - [Rewards Program](reference/rewards-program.md) - Complete rewards & recognition program
+- [Refactoring Decisions](reference/refactoring-decisions.md) - When to refactor: decision framework and cost-benefit analysis
+- [Safe Refactorings](reference/safe-refactorings.md) - 15 micro-tidyings you can do anytime
+- [Technical Debt Management](reference/technical-debt-management.md) - Debt ledger and prioritization framework
 
 *These are your "deep dive" resources when you need full context and philosophy*
 
@@ -161,15 +179,23 @@ onesyntax-playbook/
 │
 ├── 2-standards/                 # What we build
 │   ├── why-these-practices.md  # First principles reasoning
-│   └── development-system.md   # DDD + Clean Architecture + TDD
+│   ├── development-system.md   # DDD + Clean Architecture + TDD
+│   ├── simple-design.md        # YAGNI vs architecture balance
+│   └── acceptance-tests.md     # Given-When-Then format
 │
 ├── 3-processes/                 # How we work
 │   ├── enforcement.md          # Quality enforcement
-│   └── code-review.md          # Code review process
+│   ├── code-review.md          # Code review process
+│   ├── collective-ownership.md # Shared code responsibility
+│   ├── pair-programming.md     # Pairing guidelines
+│   ├── planning-game.md        # Sprint planning
+│   └── small-releases.md       # CI/CD deployment
 │
 ├── 4-people/                    # How we grow
 │   ├── training.md             # 12-week program
-│   └── career.md               # Career framework
+│   ├── career.md               # Career framework
+│   ├── sustainable-pace.md     # 40-hour work week
+│   └── whole-team.md           # Cross-functional collaboration
 │
 ├── 5-execution/                 # How we implement
 │   └── 90-day-plan.md          # Quality initiative
@@ -188,7 +214,10 @@ onesyntax-playbook/
     ├── enforcement-deep-dive.md # Full enforcement system
     ├── execution-complete.md   # 6-month execution plan
     ├── promotion-framework.md  # Complete career guide
-    └── rewards-program.md      # Rewards & recognition
+    ├── rewards-program.md      # Rewards & recognition
+    ├── refactoring-decisions.md # When to refactor framework
+    ├── safe-refactorings.md    # Micro-tidyings catalog
+    └── technical-debt-management.md # Debt ledger & prioritization
 ```
 
 **📌 Navigation:**
